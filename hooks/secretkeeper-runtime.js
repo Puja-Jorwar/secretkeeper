@@ -45,6 +45,27 @@ function writeHookOutput(hookType, mode, context) {
   process.stdout.write(JSON.stringify(payload));
 }
 
+function writePostToolContext(context) {
+  if (!context) {
+    process.stdout.write('{}');
+    return;
+  }
+
+  const payload = {
+    hookSpecificOutput: {
+      hookEventName: 'PostToolUse',
+      additionalContext: context,
+    },
+  };
+
+  if (isCodex) {
+    process.stdout.write(context);
+    return;
+  }
+
+  process.stdout.write(JSON.stringify(payload));
+}
+
 module.exports = {
   isCodex: Boolean(isCodex),
   flagPath,
@@ -52,4 +73,5 @@ module.exports = {
   clearMode,
   readMode,
   writeHookOutput,
+  writePostToolContext,
 };

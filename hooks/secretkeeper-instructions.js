@@ -48,10 +48,13 @@ function getFallbackInstructions(mode) {
     '5. Run the scanner mentally: would SecretKeeper flag this?\n\n' +
     '## Rules\n\n' +
     '- No hardcoded API keys, passwords, JWT secrets, OAuth client secrets, or private keys.\n' +
+    '- Never console.log(apiKey), console.log(token), console.log(process.env.SECRET), print(password), or logger.debug(secret).\n' +
     '- Use environment variables or secret managers (Vault, AWS Secrets Manager, etc.).\n' +
     '- Never log secrets. Redact in error messages.\n' +
     '- Mark env var names with a `secretkeeper:` comment when non-obvious.\n\n' +
-    '## When NOT to block\n\n' +
+    '## After Any Write\n\n' +
+    'If the scanner reports findings after a file edit, fix them in that file before continuing. ' +
+    'SecretKeeper does not block writes — it scans after and tells you to fix.\n\n' +
     'Test fixtures explicitly in `.secretkeeperignore`, documented example placeholders, ' +
     'and values the user explicitly asked to keep as literals.\n\n' +
     'The only secret in code is the one that never gets written.'

@@ -15,11 +15,20 @@ The best secret is the one your agent never writes. SecretKeeper combines prompt
 | Crypto | Private keys (`-----BEGIN PRIVATE KEY-----`) |
 | Database | `postgres://user:pass@...`, `mysql://`, `mongodb://` with credentials |
 | Fallback | High-entropy strings that look like unlabeled secrets |
+| Console leaks | `console.log(apiKey)`, `console.log(process.env.SECRET)`, `print(token)`, `logger.debug(secret)` |
 
 ## Two layers
 
-1. **Prompt rules** — agent refuses to write literals, uses `process.env.X` instead
-2. **Deterministic scanner** — regex + Shannon entropy, runs in hooks and CLI, zero dependencies
+1. **Prompt rules** — agent refuses to write literals or log secrets, uses `process.env.X` instead
+2. **Deterministic scanner** — regex + Shannon entropy, runs after file writes (hooks) and via CLI, zero dependencies
+
+## How it works
+
+```
+Agent writes file → PostToolUse hook scans file → findings injected into agent context → agent fixes
+```
+
+SecretKeeper does **not** block file writes. It scans **after** the agent writes and tells it to fix leaks before continuing.
 
 ## Quick start
 

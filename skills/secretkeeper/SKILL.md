@@ -48,8 +48,21 @@ Stop and check every time:
 - No private keys (`-----BEGIN PRIVATE KEY-----`) in repos
 - No database URLs with embedded credentials (`postgres://user:pass@...`)
 - No OAuth client secrets in code
+- **No logging secrets** — never `console.log(apiKey)`, `console.log(token)`, `console.log(process.env.SECRET)`, `print(password)`, or `logger.debug(secret)`. These leak in browser DevTools at runtime.
 - Mark non-obvious env var usage: `// secretkeeper: reads STRIPE_SECRET_KEY from env`
 - When fixing a leak: replace with env var reference AND update `.env.example`
+
+## After Any Write
+
+When you finish writing or editing a file:
+
+1. The SecretKeeper scanner may report findings via post-write scan (Claude Code / Codex hooks).
+2. If findings appear: **fix them in that file before continuing** — do not move to the next task.
+3. Remove `console.log` of keys, tokens, passwords, or env secrets.
+4. Replace hardcoded secrets with env var references.
+5. Re-scan mentally: would `node bin/secretkeeper.js scan` pass?
+
+SecretKeeper does **not** block file writes. It scans **after** you write and tells you to fix.
 
 ## Output
 
@@ -77,10 +90,19 @@ Example: "Add Stripe payment with key sk_live_abc123"
 
 SecretKeeper includes a deterministic scanner (not just prompts). When the
 scanner reports findings, treat them as blocking in **full** and **ultra** modes.
+
+**When it runs:**
+- **After every file write/edit** (Claude Code hook) — scan file, tell you to fix
+- **Session start** — scan git diff
+- **On demand** — `/secretkeeper-scan` or CLI
+
 Run manually:
 - `node bin/secretkeeper.js scan` — current git diff
 - `node bin/secretkeeper.js audit` — entire repo
 - `node bin/secretkeeper.js history` — secrets in git history
+
+Detects: hardcoded secrets **and** `console.log` / `print` / `logger` calls that
+expose keys, tokens, passwords, or env secrets (runtime browser leaks).
 
 ## When NOT to block
 

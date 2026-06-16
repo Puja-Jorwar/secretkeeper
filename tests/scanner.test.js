@@ -61,6 +61,27 @@ describe('scanContent', () => {
     const findings = scanContent('const key = process.env.OPENAI_API_KEY;');
     assert.equal(findings.length, 0);
   });
+
+  test('detects console.log of sensitive variable', () => {
+    const findings = scanContent('console.log(apiKey);');
+    assert.ok(findings.some((f) => f.id === 'console-log-variable'));
+  });
+
+  test('detects console.log of env secret', () => {
+    const findings = scanContent('console.log(process.env.STRIPE_SECRET_KEY);');
+    assert.ok(findings.some((f) => f.id === 'console-log-env-secret'));
+  });
+
+  test('detects console.log with secret in call', () => {
+    const findings = scanContent('console.log("debug token:", authToken);');
+    assert.ok(findings.some((f) => f.id === 'console-log-sensitive'));
+  });
+
+  test('allows safe console.log', () => {
+    const findings = scanContent('console.log("user logged in", userId);');
+    const consoleFindings = findings.filter((f) => f.id.startsWith('console-log'));
+    assert.equal(consoleFindings.length, 0);
+  });
 });
 
 describe('helpers', () => {

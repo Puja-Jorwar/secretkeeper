@@ -148,6 +148,34 @@ const PATTERNS = [
   },
 ];
 
+// Sensitive data logged to console/debugger — leaks in browser DevTools at runtime
+const SENSITIVE_NAME =
+  /\b(?:api[_-]?key|secret(?:[_-]?key)?|access[_-]?token|refresh[_-]?token|auth[_-]?token|password|passwd|pwd|jwt(?:[_-]?secret)?|private[_-]?key|client[_-]?secret|credentials?|session[_-]?token|bearer(?:[_-]?token)?|stripe[_-]?key|openai[_-]?key|aws[_-]?(?:secret|key)|database[_-]?url|connection[_-]?string)\b/i;
+
+const CONSOLE_LOG_PATTERNS = [
+  {
+    id: 'console-log-sensitive',
+    label: 'Secret Logged to Console (runtime leak)',
+    severity: 'high',
+    regex:
+      /(?:console\.(?:log|debug|info|warn|error|trace|dir)|print|logger\.(?:debug|info|warn|error|trace)|(?:debug|info|warn|error|trace)(?:\.log)?)\s*\([^)]*(?:api[_-]?key|secret|token|password|credential|jwt|private[_-]?key|auth[_-]?header|bearer)[^)]*\)/gi,
+  },
+  {
+    id: 'console-log-env-secret',
+    label: 'Env Secret Logged to Console (runtime leak)',
+    severity: 'critical',
+    regex:
+      /(?:console\.(?:log|debug|info|warn|error|trace|dir)|print|logger\.(?:debug|info|warn|error|trace))\s*\([^)]*process\.env\.[A-Z0-9_]*(?:KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL)[A-Z0-9_]*[^)]*\)/gi,
+  },
+  {
+    id: 'console-log-env-python',
+    label: 'Env Secret Logged (Python print/logger)',
+    severity: 'critical',
+    regex:
+      /(?:print|logger\.(?:debug|info|warning|error))\s*\([^)]*os\.environ\[[^\]]*(?:KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL)[^\]]*\][^)]*\)/gi,
+  },
+];
+
 const PLACEHOLDER_PATTERNS = [
   /^your[-_]/i,
   /^example[-_]/i,
@@ -223,6 +251,52 @@ function lineNumberAt(content, index) {
   return content.slice(0, index).split(/\r?\n/).length;
 }
 
+function scanConsoleLeaks(content, filePath, findings, seen) {
+  for (const pattern of CONSOLE_LOG_PATTERNS) {
+    pattern.regex.lastIndex = 0;
+    let match;
+    while ((match = pattern.regex.exec(content)) !== null) {
+      const key = `${pattern.id}:${filePath}:${match.index}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      findings.push({
+        id: pattern.id,
+        label: pattern.label,
+        severity: pattern.severity,
+        file: filePath,
+        line: lineNumberAt(content, match.index),
+        match: redact(match[0].slice(0, 80)),
+        rawLength: match[0].length,
+      });
+    }
+  }
+
+  // Catch console.log(variable) where variable name is sensitive
+  const logCallRegex =
+    /(?:console\.(?:log|debug|info|warn|error|trace|dir)|print|logger\.(?:debug|info|warn|error|trace))\s*\(\s*([a-zA-Z_$][\w$]*)\s*\)/g;
+  let logMatch;
+  while ((logMatch = logCallRegex.exec(content)) !== null) {
+    const varName = logMatch[1];
+    if (!SENSITIVE_NAME.test(varName)) continue;
+    if (/^(err|error|message|msg|text|data|result|response|status|count|index|i|j|k|n)$/i.test(varName)) continue;
+
+    const key = `console-log-var:${filePath}:${logMatch.index}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    findings.push({
+      id: 'console-log-variable',
+      label: 'Sensitive Variable Logged to Console (runtime leak)',
+      severity: 'high',
+      file: filePath,
+      line: lineNumberAt(content, logMatch.index),
+      match: `${logMatch[0].slice(0, 40)}…`,
+      rawLength: logMatch[0].length,
+    });
+  }
+}
+
 function scanContent(content, filePath = '<inline>') {
   const findings = [];
   const seen = new Set();
@@ -274,6 +348,8 @@ function scanContent(content, filePath = '<inline>') {
       entropy: Number(shannonEntropy(raw).toFixed(2)),
     });
   }
+
+  scanConsoleLeaks(content, filePath, findings, seen);
 
   return findings;
 }
@@ -374,10 +450,10 @@ function scanGitHistory(rootDir = process.cwd(), maxCommits = 500) {
 
 function formatFindings(findings) {
   if (findings.length === 0) {
-    return 'No secrets detected.';
+    return 'No secret leaks detected.';
   }
 
-  const lines = [`Found ${findings.length} potential secret(s):\n`];
+  const lines = [`Found ${findings.length} potential secret leak(s):\n`];
   for (const f of findings) {
     const commit = f.commit ? ` [commit ${f.commit}]` : '';
     lines.push(`  [${f.severity.toUpperCase()}] ${f.label}${commit}`);
@@ -388,6 +464,7 @@ function formatFindings(findings) {
 
 module.exports = {
   PATTERNS,
+  CONSOLE_LOG_PATTERNS,
   scanContent,
   scanFile,
   scanDirectory,
