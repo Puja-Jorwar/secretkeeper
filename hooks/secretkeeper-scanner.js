@@ -451,16 +451,31 @@ function scanGitHistory(rootDir = process.cwd(), maxCommits = 500) {
   return findings;
 }
 
+const colors = {
+  reset: '\x1b[0m',
+  bold: '\x1b[1m',
+  red: '\x1b[31m',
+  yellow: '\x1b[33m',
+  cyan: '\x1b[36m',
+  gray: '\x1b[90m',
+  green: '\x1b[32m',
+};
+
 function formatFindings(findings) {
   if (findings.length === 0) {
-    return 'No secret leaks detected.';
+    return `${colors.green}${colors.bold}No secret leaks detected.${colors.reset}`;
   }
 
   const lines = [`Found ${findings.length} potential secret leak(s):\n`];
   for (const f of findings) {
+    let severityColor = colors.reset;
+    if (f.severity === 'critical') severityColor = colors.red + colors.bold;
+    else if (f.severity === 'high') severityColor = colors.yellow + colors.bold;
+    else if (f.severity === 'medium') severityColor = colors.cyan;
+
     const commit = f.commit ? ` [commit ${f.commit}]` : '';
-    lines.push(`  [${f.severity.toUpperCase()}] ${f.label}${commit}`);
-    lines.push(`    ${f.file}:${f.line} → ${f.match}`);
+    lines.push(`  [${severityColor}${f.severity.toUpperCase()}${colors.reset}] ${colors.bold}${f.label}${colors.reset}${commit}`);
+    lines.push(`    ${colors.gray}${f.file}:${f.line}${colors.reset} → ${colors.red}${f.match}${colors.reset}`);
   }
   return lines.join('\n');
 }
