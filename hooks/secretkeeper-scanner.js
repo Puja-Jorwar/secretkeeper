@@ -238,11 +238,17 @@ function matchesIgnore(filePath, ignorePatterns) {
   for (const pattern of [...DEFAULT_IGNORE, ...ignorePatterns]) {
     const p = pattern.replace(/\\/g, '/');
     if (p.endsWith('/')) {
-      if (normalized.includes('/' + p) || normalized.startsWith(p)) return true;
-    } else if (normalized.includes('/' + p + '/') || normalized.endsWith('/' + p) || normalized === p) {
-      return true;
+      if (normalized.startsWith(p) || normalized.includes('/' + p)) return true;
+    } else {
+      if (
+        normalized === p ||
+        normalized.startsWith(p + '/') ||
+        normalized.includes('/' + p + '/') ||
+        normalized.endsWith('/' + p)
+      ) {
+        return true;
+      }
     }
-    if (normalized.includes(p)) return true;
   }
   return false;
 }
@@ -420,13 +426,10 @@ function scanGitHistory(rootDir = process.cwd(), maxCommits = 500) {
       maxBuffer: 50 * 1024 * 1024,
     });
 
-    const commitBlocks = log.split(/^commit [a-f0-9]{40}$/m).slice(1);
-    for (const block of commitBlocks) {
-      const commitMatch = block.match(/^Author:.*\nDate:.*\n\n/);
-      const headerEnd = commitMatch ? commitMatch.index + commitMatch[0].length : 0;
-      const header = block.slice(0, headerEnd);
-      const shaMatch = header.match(/commit ([a-f0-9]{7,40})/);
-      const sha = shaMatch ? shaMatch[1].slice(0, 7) : 'unknown';
+    const parts = log.split(/^commit ([a-f0-9]{40})/m);
+    for (let i = 1; i < parts.length; i += 2) {
+      const sha = parts[i].slice(0, 7);
+      const block = parts[i + 1] || '';
 
       const addedLines = block
         .split(/\r?\n/)
@@ -462,6 +465,109 @@ function formatFindings(findings) {
   return lines.join('\n');
 }
 
+function getEnvVarNameForPattern(id) {
+  const mapping = {
+    'aws-access-key': 'AWS_ACCESS_KEY_ID',
+    'aws-secret-key': 'AWS_SECRET_ACCESS_KEY',
+    'github-pat': 'GITHUB_TOKEN',
+    'github-oauth': 'GITHUB_TOKEN',
+    'github-app': 'GITHUB_APP_TOKEN',
+    'gitlab-pat': 'GITLAB_TOKEN',
+    'openai-key': 'OPENAI_API_KEY',
+    'anthropic-key': 'ANTHROPIC_API_KEY',
+    'stripe-key': 'STRIPE_SECRET_KEY',
+    'twilio-key': 'TWILIO_AUTH_TOKEN',
+    'sendgrid-key': 'SENDGRID_API_KEY',
+    'slack-token': 'SLACK_BOT_TOKEN',
+    'npm-token': 'NPM_TOKEN',
+    'google-api-key': 'GOOGLE_API_KEY',
+    'jwt-secret': 'JWT_SECRET',
+    'oauth-client-secret': 'OAUTH_CLIENT_SECRET',
+    'hardcoded-password': 'PASSWORD',
+    'database-url': 'DATABASE_URL',
+  };
+  return mapping[id] || null;
+}
+
+function updateEnvExample(rootDir) {
+  const examplePath = path.join(rootDir, '.env.example');
+  let content = '';
+  if (fs.existsSync(examplePath)) {
+    content = fs.readFileSync(examplePath, 'utf8');
+  }
+
+  const envVarRegex = /(?:process\.env\.([A-Z0-9_]+)|os\.environ\.get\(['"]([A-Z0-9_]+)['"]\))/g;
+  const foundVars = new Set();
+
+  const ignorePatterns = loadIgnorePatterns(rootDir);
+  const files = walkFiles(rootDir, ignorePatterns);
+
+  for (const file of files) {
+    if (!isTextFile(file) || file.endsWith('.env.example') || file.endsWith('.env')) continue;
+    try {
+      const fileContent = fs.readFileSync(file, 'utf8');
+      let match;
+      while ((match = envVarRegex.exec(fileContent)) !== null) {
+        foundVars.add(match[1] || match[2]);
+      }
+    } catch (e) {}
+  }
+
+  let modified = false;
+  for (const envVar of foundVars) {
+    if (!content.includes(`${envVar}=`)) {
+      content += `\n# Added by SecretKeeper\n${envVar}=your_${envVar.toLowerCase()}_here\n`;
+      modified = true;
+    }
+  }
+
+  if (modified || !fs.existsSync(examplePath)) {
+    fs.writeFileSync(examplePath, content.trim() + '\n', 'utf8');
+  }
+}
+
+function fixFile(filePath) {
+  if (!isTextFile(filePath)) return false;
+  try {
+    let content = fs.readFileSync(filePath, 'utf8');
+    let modified = false;
+
+    const ext = path.extname(filePath).toLowerCase();
+    const isPython = ext === '.py';
+
+    for (const pattern of PATTERNS) {
+      pattern.regex.lastIndex = 0;
+      const envVar = getEnvVarNameForPattern(pattern.id);
+      if (!envVar) continue;
+
+      const replacement = isPython ? `os.environ.get('${envVar}')` : `process.env.${envVar}`;
+
+      content = content.replace(pattern.regex, (fullMatch, group1) => {
+        const raw = group1 || fullMatch;
+        if (isLikelyPlaceholder(raw)) return fullMatch;
+        modified = true;
+        if (group1) {
+          return fullMatch.replace(group1, replacement);
+        }
+        return replacement;
+      });
+    }
+
+    if (modified) {
+      // Cleanup: strip quotes surrounding process.env.VAR or os.environ.get('VAR') references
+      content = content.replace(/['"]process\.env\.([A-Z0-9_]+)['"]/g, 'process.env.$1');
+      content = content.replace(/['"]os\.environ\.get\(['"]([A-Z0-9_]+)['"]\)['"]/g, "os.environ.get('$1')");
+
+      fs.writeFileSync(filePath, content, 'utf8');
+      updateEnvExample(process.cwd());
+      return true;
+    }
+  } catch (e) {
+    // ignore
+  }
+  return false;
+}
+
 module.exports = {
   PATTERNS,
   CONSOLE_LOG_PATTERNS,
@@ -475,4 +581,7 @@ module.exports = {
   isLikelyPlaceholder,
   redact,
   loadIgnorePatterns,
+  matchesIgnore,
+  fixFile,
+  updateEnvExample,
 };

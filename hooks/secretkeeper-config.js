@@ -52,6 +52,22 @@ function getDefaultMode() {
     return envMode.toLowerCase();
   }
 
+  // Check project-local config first
+  const localRc = path.join(process.cwd(), '.secretkeeperrc');
+  const localJson = path.join(process.cwd(), 'secretkeeper.config.json');
+  for (const localPath of [localRc, localJson]) {
+    try {
+      if (fs.existsSync(localPath)) {
+        const config = JSON.parse(fs.readFileSync(localPath, 'utf8'));
+        if (config.defaultMode && VALID_MODES.includes(config.defaultMode.toLowerCase())) {
+          return config.defaultMode.toLowerCase();
+        }
+      }
+    } catch (e) {
+      // ignore local config parse errors
+    }
+  }
+
   try {
     const config = JSON.parse(fs.readFileSync(getConfigPath(), 'utf8'));
     if (config.defaultMode && VALID_MODES.includes(config.defaultMode.toLowerCase())) {

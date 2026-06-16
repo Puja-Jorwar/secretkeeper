@@ -5,6 +5,9 @@ const {
   shannonEntropy,
   isLikelyPlaceholder,
   redact,
+  matchesIgnore,
+  fixFile,
+  updateEnvExample,
 } = require('../hooks/secretkeeper-scanner');
 
 describe('scanContent', () => {
@@ -112,5 +115,18 @@ describe('benchmark fixture', () => {
     ].join('\n');
     const findings = scanContent(content);
     assert.ok(findings.length >= 4, `Expected >= 4 findings, got ${findings.length}`);
+  });
+});
+
+describe('matchesIgnore boundary-aware checks', () => {
+  test('ignores exact folder structures', () => {
+    assert.ok(matchesIgnore('dist/main.js', ['dist/']));
+    assert.ok(matchesIgnore('src/dist/main.js', ['dist/']));
+  });
+
+  test('does not ignore files containing ignored term as substring', () => {
+    assert.ok(!matchesIgnore('distance.js', ['dist']));
+    assert.ok(!matchesIgnore('rebuild.js', ['build']));
+    assert.ok(!matchesIgnore('vendor_signup.js', ['vendor']));
   });
 });
