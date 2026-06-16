@@ -1,7 +1,7 @@
 {
   "name": "secretkeeper",
   "version": "1.0.0",
-  "description": "Stops AI agents from leaking secrets. Prompt rules + deterministic scanner for API keys, credentials, JWT secrets, and more.",
+  "description": "Stops AI agents from leaking secrets. Prompt rules + deterministic scanner for API keys, JWT secrets, passwords, private keys, and more.",
   "author": {
     "name": "SecretKeeper Contributors"
   },
@@ -12,13 +12,13 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "SecretKeeper",
-    "shortDescription": "Stop credential leaks before they ship",
+    "shortDescription": "Stop secret leaks before they ship",
     "longDescription": "Prevents AI agents from hardcoding API keys, passwords, JWT secrets, and private keys. Combines prompt rules with a deterministic regex+entropy scanner.",
     "category": "Security",
     "capabilities": ["Instructions", "Lifecycle hooks", "CLI scanner"],
     "defaultPrompt": [
       "Scan this diff for leaked secrets.",
-      "Replace hardcoded credentials with environment variables.",
+      "Replace hardcoded secrets with environment variables.",
       "Audit the repo for exposed API keys."
     ],
     "brandColor": "#1a1a2e"

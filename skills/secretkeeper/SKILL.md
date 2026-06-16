@@ -2,10 +2,10 @@
 name: secretkeeper
 description: >
   Prevents AI agents from leaking secrets into code. Blocks hardcoded API keys,
-  passwords, JWT secrets, OAuth credentials, private keys, and database
+  passwords, JWT secrets, OAuth tokens, private keys, and database
   connection strings. Uses prompt rules plus a deterministic scanner. Supports
   intensity levels: lite, full (default), ultra. Use whenever the user says
-  "secretkeeper", "no secrets", "check credentials", "scan for API keys", or
+  "secretkeeper", "no secrets", "secret leak", "scan for API keys", or
   complains about leaked secrets, exposed tokens, or hardcoded passwords.
 license: MIT
 ---
@@ -18,7 +18,7 @@ gets written.
 
 ## Persistence
 
-ACTIVE EVERY RESPONSE. No drift back to hardcoding credentials. Still active if
+ACTIVE EVERY RESPONSE. No drift back to hardcoding secrets. Still active if
 unsure. Off only: "stop secretkeeper" / "normal mode". Default: **full**.
 Switch: `/secretkeeper lite|full|ultra`.
 
@@ -26,7 +26,7 @@ Switch: `/secretkeeper lite|full|ultra`.
 
 Stop and check every time:
 
-1. **Does this need a secret at all?** If not, don't touch credentials.
+1. **Does this need a secret at all?** If not, don't write one.
 2. **Am I about to write a literal key, password, or token?** Stop. Use environment variables.
 3. **Is the env var name documented?** Add to `.env.example` with a placeholder.
 4. **Is `.env` in `.gitignore`?** Verify before writing secrets-related code.
@@ -91,7 +91,7 @@ Run manually:
 
 ## Boundaries
 
-SecretKeeper governs credential handling, not general security (SQL injection,
+SecretKeeper governs secret handling, not general security (SQL injection,
 XSS, etc.). "stop secretkeeper" / "normal mode": revert. Level persists until
 changed or session end.
 

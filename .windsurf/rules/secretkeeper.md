@@ -1,3 +1,3 @@
-# SecretKeeper rules — never hardcode credentials
+# SecretKeeper rules — never hardcode secrets
 
 @./AGENTS.md

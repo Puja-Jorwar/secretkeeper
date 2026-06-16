@@ -1,7 +1,7 @@
 {
   "name": "secretkeeper",
   "version": "1.0.0",
-  "description": "Stops AI agents from leaking secrets. Prompt rules + deterministic scanner for API keys, credentials, JWT secrets, and more.",
+  "description": "Stops AI agents from leaking secrets. Prompt rules + deterministic scanner for API keys, JWT secrets, passwords, private keys, and more.",
   "license": "MIT",
   "keywords": ["ai-agents", "plugin", "skill", "secrets", "security", "credentials"],
   "bin": {

@@ -43,7 +43,7 @@ function main() {
     case 'help':
     case '--help':
     case '-h':
-      console.log(`SecretKeeper — stop credential leaks
+      console.log(`SecretKeeper — stop secret leaks
 
 Usage:
   secretkeeper scan [dir]     Scan git diff (staged + unstaged)
