@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "node \"${COPILOT_PLUGIN_ROOT}/hooks/secretkeeper-activate.js\"",
+        "timeout": 10
+      }
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "secretkeeper",
+  "version": "1.0.0",
+  "description": "Stops AI agents from leaking secrets. Prompt rules + deterministic scanner for API keys, credentials, JWT secrets, and more.",
+  "license": "MIT",
+  "keywords": ["ai-agents", "plugin", "skill", "secrets", "security", "credentials"],
+  "bin": {
+    "secretkeeper": "./bin/secretkeeper.js"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "scan": "node bin/secretkeeper.js scan",
+    "audit": "node bin/secretkeeper.js audit",
+    "history": "node bin/secretkeeper.js history",
+    "benchmark": "node benchmarks/run.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

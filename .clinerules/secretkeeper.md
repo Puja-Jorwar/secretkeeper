@@ -1,0 +1,3 @@
+# SecretKeeper rules
+
+@../AGENTS.md

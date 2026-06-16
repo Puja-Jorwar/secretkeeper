@@ -1,0 +1,13 @@
+{
+  "name": "secretkeeper",
+  "description": "Stops AI agents from leaking secrets into code",
+  "version": "1.0.0",
+  "author": {
+    "name": "SecretKeeper Contributors"
+  },
+  "license": "MIT",
+  "keywords": ["secrets", "security", "credentials"],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "commands": "./commands/"
+}

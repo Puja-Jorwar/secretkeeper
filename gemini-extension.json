@@ -1,0 +1,7 @@
+{
+  "name": "secretkeeper",
+  "version": "1.0.0",
+  "description": "Stops AI agents from leaking secrets into code",
+  "skills": ["./skills/secretkeeper/SKILL.md"],
+  "agents": ["./AGENTS.md"]
+}
