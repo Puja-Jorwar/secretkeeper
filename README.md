@@ -39,22 +39,52 @@ When writing code, SecretKeeper forces your agent to follow the ladder:
 
 ## ⚡ Quick Start
 
-Install this repo as a plugin, or drop `AGENTS.md` in your project root, and run:
+### Installation
 
+#### Option A: Install Globally as a CLI Tool
 ```bash
-git clone https://github.com/Puja-Jorwar/secretkeeper.git
-cd secretkeeper
-npm test
-node bin/secretkeeper.js audit
+# Install directly from GitHub
+npm install -g https://github.com/Puja-Jorwar/secretkeeper.git
+
+# Or if you are developing locally, run this in the repo root:
+npm link
 ```
 
-### CLI Commands for Humans (and Agents)
+#### Option B: Install as a local Project Dependency
+```bash
+npm install --save-dev secretkeeper
+```
+
+---
+
+## 🛠️ CLI Usage
+
+If installed globally, you can run the `secretkeeper` command directly. If installed locally, prefix commands with `npx`.
 
 | Command | Action |
 |---------|--------|
-| `node bin/secretkeeper.js scan` | Scans current git diff (staged + unstaged) |
-| `node bin/secretkeeper.js audit` | Audits the entire codebase for buried secrets |
-| `node bin/secretkeeper.js history` | Scans git commit logs to find secrets you deleted but forgot to purge from history |
+| `secretkeeper scan` | Scan current git diff (staged + unstaged changes) |
+| `secretkeeper scan --fix` | Scan git diff and automatically parameterize new secrets |
+| `secretkeeper audit` | Audit the entire repository for secrets |
+| `secretkeeper audit --fix` | Audit the entire repository and auto-fix/parameterize secrets in-place |
+| `secretkeeper history` | Scan git commit history for buried secrets (finds deleted keys) |
+
+---
+
+## ⚓ Git Pre-Commit Hook Integration
+
+Prevent secrets from ever leaving your computer by running SecretKeeper on every commit using **Husky**:
+
+1. Install Husky in your project:
+   ```bash
+   npm install husky --save-dev
+   npx husky install
+   ```
+2. Add a pre-commit hook that runs SecretKeeper scan:
+   ```bash
+   npx husky add .husky/pre-commit "npx secretkeeper scan"
+   ```
+If SecretKeeper detects any hardcoded keys, it will block the commit.
 
 ---
 
